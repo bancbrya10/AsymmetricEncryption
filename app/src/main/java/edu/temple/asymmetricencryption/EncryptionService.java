@@ -81,5 +81,10 @@ public class EncryptionService extends Service {
             }
         };
         t.start();
+        try {
+            t.join();
+        } catch (InterruptedException e) {
+            Log.d("ServiceThreadError", "Error joining threads");
+        }
     }
 }
