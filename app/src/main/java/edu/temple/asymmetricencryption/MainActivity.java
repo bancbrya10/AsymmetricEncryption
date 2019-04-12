@@ -7,6 +7,7 @@ import android.content.ServiceConnection;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -18,8 +19,10 @@ import android.os.Bundle;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import java.security.KeyFactory;
@@ -46,11 +49,11 @@ public class MainActivity extends AppCompatActivity {
     EncryptionService encryptionService;
     Boolean connected = false;
     NfcAdapter nfcAdapter;
-    ArrayList<PublicKey> publicKeyArrayList;
     PublicKey currentKey;
     String partnerName = "";
     String username = "";
-    ArrayList<String> partnerList;
+    Spinner spinner;
+    UserAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,8 +66,11 @@ public class MainActivity extends AppCompatActivity {
         inputText = findViewById(R.id.inputText);
         usernameText = findViewById(R.id.usernameEditText);
         nfcAdapter = NfcAdapter.getDefaultAdapter(this);
-        partnerList = new ArrayList<>();
-        publicKeyArrayList = new ArrayList<>();
+        spinner = findViewById(R.id.spinner);
+        encryptionService = new EncryptionService();
+
+        adapter = new UserAdapter(this, encryptionService.users);
+        spinner.setAdapter(adapter);
 
         if (nfcAdapter == null) {
             Toast.makeText(this, "NFC is not available", Toast.LENGTH_LONG).show();
@@ -75,12 +81,22 @@ public class MainActivity extends AppCompatActivity {
         getKeyPairButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                encryptionService.getKeyPair(serviceHandler);
-                Toast.makeText(MainActivity.this, "Key Pair Generated", Toast.LENGTH_LONG).show();
-                while(!connected){};
-                publicKeyArrayList.add(encryptionService.publicKey);
-                byte[] byteArr = Base64.encode(encryptionService.publicKey.getEncoded(), 0);
-                Log.d("KeyPairGenerated", new String(byteArr));
+                if(connected) {
+                    username = usernameText.getText().toString();
+                    if (username.equals("")) {
+                        Toast.makeText(MainActivity.this, "Please enter a username before sending a key", Toast.LENGTH_LONG).show();
+                    } else {
+                        encryptionService.getKeyPair(serviceHandler, username);
+                        Toast.makeText(MainActivity.this, "Key Pair Generated", Toast.LENGTH_LONG).show();
+                        while (!connected) ;
+                        byte[] byteArr = Base64.encode(encryptionService.publicKey.getEncoded(), 0);
+                        Log.d("KeyPairGenerated", new String(byteArr));
+                        adapter.notifyDataSetChanged();
+                    }
+                }
+                else{
+                    Toast.makeText(MainActivity.this, "Encryption Service not Connected. Press \"Get Key Pair\" button before continuing.", Toast.LENGTH_LONG).show();
+                }
             }
         });
 
@@ -255,6 +271,17 @@ public class MainActivity extends AppCompatActivity {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private class getPartnersTask extends AsyncTask{
+
+        JSONObject temp;
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            
+            return null;
         }
     }
 }

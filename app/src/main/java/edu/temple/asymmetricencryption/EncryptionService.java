@@ -20,6 +20,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
+import java.util.ArrayList;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
@@ -32,8 +33,10 @@ public class EncryptionService extends Service {
     Cipher cipher;
     RSAPrivateKey privateKey;
     RSAPublicKey publicKey;
+    ArrayList<User> users;
 
     public EncryptionService() {
+        users = new ArrayList<>();
     }
 
     @Override
@@ -47,7 +50,7 @@ public class EncryptionService extends Service {
         }
     }
 
-    public void getKeyPair(final Handler handler){
+    public void getKeyPair(final Handler handler, final String username){
         this.handler = handler;
         Thread t = new Thread() {
             @Override
@@ -71,6 +74,8 @@ public class EncryptionService extends Service {
                     RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(publicKey.getModulus(), new BigInteger(publicKeyString));
                     publicKey = (RSAPublicKey) fact.generatePublic(pubKeySpec);
 
+                    storePublicKey(username);
+
                     Message msg = Message.obtain();
                     msg.obj = keys;
                     handler.sendMessage(msg);
@@ -86,5 +91,20 @@ public class EncryptionService extends Service {
         } catch (InterruptedException e) {
             Log.d("ServiceThreadError", "Error joining threads");
         }
+    }
+
+    public void storePublicKey(String username){
+        User newUser = new User(username, publicKey);
+        users.add(newUser);
+    }
+
+    public RSAPublicKey getPublicKey(String username){
+        for(User index : users){
+            if(username.equals(index.getUsername())){
+                return index.getPublicKey();
+            }
+        }
+        Log.d("GetPublicKeyError", "Username not found");
+        return null;
     }
 }
